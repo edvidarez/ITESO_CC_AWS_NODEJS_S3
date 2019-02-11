@@ -1,0 +1,20 @@
+extends layout
+
+block content
+  h1= title
+  p Welcome to S3 Client
+  p List of Objects
+  
+  table
+    tr
+        td Name
+        td Etag
+        td Size
+        td LastModified
+    each object in objects
+        tr
+            td= object.Key
+            td= object.ETag
+            td= object.Size
+            td= object.LastModified
+

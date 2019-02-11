@@ -18,7 +18,18 @@ router.get('/', function(req, res) {
 });
 
 router.get('/:bucket/', function(req, res) {
-
+    var bucketName = req.params.bucket;
+    console.log(bucketName);
+    s3.listObjects({
+        Bucket: bucketName
+    },function(err,data) {
+        if(err) {
+            res.render('error', {err});
+            throw err;
+        }
+        console.log(data);
+        res.render('listObject', { objects: data.Contents});
+    });
     /*
      * @TODO - Programa la logica para obtener los objetos de un bucket.
      *         Se debe tambien generar una nueblo templade en jade para presentar
@@ -28,26 +39,72 @@ router.get('/:bucket/', function(req, res) {
 });
 
 router.get('/:bucket/:key', function(req, res) {
-    
-    /*
-     * @TODO - Programa la logica para obtener un objeto en especifico
-     * es importante a la salida enviar el tipo de respuesta y el contenido
-     * 
-     * Ejemplo de esto:
-     *     res.type(...) --> String de content-type
-     *     res.send(...) --> Buffer con los datos.
-     */    
+    var bucketName = req.params.bucket; 
+    var objectKey = req.params.key;
+    s3.getObject({
+        Bucket: bucketName,
+        Key: objectKey
+    }, function(err, data) {
+        if(err) {
+            throw err;
+        }
+        console.log(data);
+        res.type(data.ContentType).send(data.Body);
+    });
 });
 
 
 router.post('/', function(req,res) {
+    var bucketName = req.body.bucketName;
+    s3.createBucket({
+        Bucket: bucketName,
+        CreateBucketConfiguration: {
+            LocationConstraint : 'us-west-2'
+        }
+    }, function(err, data) {
+        if (err) {
+            if(err.code == 'BucketAlreadyOwnedByYou') {
+                res.send({'error': true, 'message':'Bucket Already Owned By You'});
+            } else {
+                res.send({'error': true, 'message': err});
+            }
+        } else {
+            res.send({'error':false,'message': 'Bucket created successfuly'});
+        }
+    });
     /*
      * @TODO - Programa la logica para crear un Bucket.
     */
 });
 
 router.post('/:bucket', function(req,res) {
-
+    
+    for(file in req.files) {
+        console.log(req.files[file].mimetype);
+        s3.putObject({
+            Bucket: req.params.bucket,
+            Key: file,
+            Body : req.files[file].data,
+            ContentType: req.files[file].mimetype
+        }, function(err, data) {
+            if(err) {
+                res.send({
+                    "error" : true,
+                    "message": err
+                });
+            } else {
+                res.send({
+                    "error": false,
+                    "message": "Uploaded file",
+                    "file": data
+                });
+            }
+        });
+    }
+    /* s3.putObject({
+        Bucket: req.params.bucket,
+        Key: req.files
+    }) */
     /*
      * @TODO - Programa la logica para crear un nuevo objeto.
      * TIPS:
